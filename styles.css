@@ -1,0 +1,57 @@
+:root {
+  --bg: #070d0a;
+  --panel: rgba(14, 24, 19, 0.72);
+  --line: rgba(125, 245, 170, 0.2);
+  --text: #e7fff1;
+  --muted: #9ec8ad;
+  --accent: #40d67c;
+  --danger: #d64d65;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: Inter, -apple-system, sans-serif; color: var(--text);
+  background: radial-gradient(circle at 15% 20%, #1a2b22, #080d0a 45%), linear-gradient(120deg, #0b1410, #060907);
+  min-height: 100vh;
+}
+.noise { position: fixed; inset: 0; pointer-events: none; opacity: .16; background-image: radial-gradient(rgba(255,255,255,.26) 1px, transparent 1px); background-size: 3px 3px; }
+.app-shell { position: relative; z-index: 2; display: grid; grid-template-columns: 250px 1fr 360px; gap: 16px; padding: 18px; height: 100vh; }
+.glass { background: var(--panel); border: 1px solid var(--line); backdrop-filter: blur(20px); border-radius: 24px; box-shadow: 0 18px 45px rgba(0,0,0,.45); }
+.sidebar { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.brand { display: flex; align-items: center; gap: 12px; font-weight: 700; margin-bottom: 20px; }
+.brand img { width: 28px; height: 28px; }
+.nav-btn { background: transparent; border: 1px solid transparent; color: var(--text); text-align: left; padding: 12px 14px; border-radius: 14px; cursor: pointer; transition: all .2s ease; }
+.nav-btn:hover, .nav-btn.active { border-color: var(--line); background: rgba(64,214,124,.12); transform: translateY(-1px); }
+.workspace { padding: 20px; overflow: auto; }
+header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.status { padding: 8px 12px; border-radius: 999px; background: rgba(64,214,124,.15); color: #9ef7bc; font-size: 13px; }
+.view { display:none; animation: fade .25s ease; }
+.view.active { display:block; }
+@keyframes fade { from {opacity:0; transform: translateY(6px);} to {opacity:1; transform:none;} }
+.grid { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.card { border:1px solid var(--line); border-radius: 18px; padding: 14px; background: rgba(8,16,12,.44); }
+label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+input, textarea, select, button { font: inherit; }
+input, textarea, select { background: rgba(9,16,13,.8); color: var(--text); border:1px solid rgba(126,207,160,.25); border-radius: 12px; padding: 10px; }
+textarea { min-height: 90px; resize: vertical; }
+button { border:1px solid transparent; border-radius: 12px; padding: 10px 12px; cursor:pointer; background: rgba(64,214,124,.15); color:#b7ffd0; transition: all .2s ease; }
+button:hover { transform: translateY(-1px); border-color: var(--line); }
+button:disabled { opacity:.45; cursor:not-allowed; transform:none; }
+button.danger { background: rgba(214,77,101,.15); color:#ffb6c4; }
+.result img { max-width: 100%; border-radius: 12px; border:1px solid var(--line); }
+.result-grid { display:grid; gap:10px; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); }
+.carousel-viewport { text-align:center; }
+.carousel-main { max-height: 420px; width: auto; max-width: 100%; }
+.mini-row { display:flex; gap:6px; margin-top:8px; overflow:auto; }
+.mini-row img { width:70px; height:70px; object-fit:cover; opacity:.6; cursor:pointer; }
+.mini-row img.active { opacity:1; border:2px solid var(--accent); }
+.settings { padding: 14px; position: relative; overflow: hidden; transition: width .25s ease; }
+.settings.collapsed { width: 74px; }
+.toggle-settings { width:100%; margin-bottom:10px; }
+.settings.collapsed .settings-content { opacity:0; pointer-events:none; }
+.settings-content { transition: opacity .2s ease; max-height: calc(100vh - 100px); overflow:auto; }
+.btn-row { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+#toastRoot { position: fixed; right: 22px; bottom: 18px; display: grid; gap: 8px; z-index: 12; }
+.toast { padding:10px 12px; background: rgba(10,21,15,.95); border:1px solid var(--line); border-radius: 10px; }
+.skeleton { background: linear-gradient(90deg, rgba(40,70,53,.24) 25%, rgba(76,110,89,.3) 50%, rgba(40,70,53,.24) 75%); background-size: 200% 100%; animation: loading 1.3s infinite; min-height: 120px; border-radius: 14px; }
+@keyframes loading { 0% {background-position: 200% 0;} 100% {background-position: -200% 0;} }
+@media (max-width: 1220px) { .app-shell { grid-template-columns: 210px 1fr; } .settings { position: fixed; right: 12px; top: 12px; bottom: 12px; width: 340px; z-index: 20; } }
