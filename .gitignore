@@ -1,9 +1,8 @@
 node_modules/
 .DS_Store
 
-# Локальные временные файлы сервера
-server/uploads/
-
-# Локальные настройки DRILL44 AI на macOS (вне репозитория)
+# Локальные данные DRILL44 AI (macOS)
 ~/Library/Application Support/DRILL44 AI/settings.json
 ~/Library/Application Support/DRILL44 AI/tmp/
+Library/Application Support/DRILL44 AI/settings.json
+Library/Application Support/DRILL44 AI/tmp/

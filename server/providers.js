@@ -1,87 +1,56 @@
 const axios = require('axios');
+const { createDemoImage } = require('./demo-image');
+const { resolveImageRuntime } = require('./fs-utils');
 
-function safeJoin(baseUrl, endpoint) {
-  const trimmed = baseUrl.replace(/\/$/, '');
-  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  return `${trimmed}${path}`;
+function joinUrl(baseUrl, endpointPath) {
+  return `${baseUrl.replace(/\/$/, '')}${endpointPath.startsWith('/') ? endpointPath : `/${endpointPath}`}`;
 }
 
-function buildPromptMessages(mode, userInstruction, context = {}) {
-  const sys = mode === 'json'
-    ? 'Ты создаешь структурированный JSON-промпт для генератора изображений. Отвечай только валидным JSON с полями mainPrompt, negatives, styleNotes, constraints.'
-    : 'Ты создаешь качественный текстовый промпт для генератора изображений. Отвечай кратко и предметно.';
-  const ctx = `Режим: ${context.modeName || 'не указан'}\nКонтекст: ${JSON.stringify(context)}`;
+function promptMessages(mode, userInstruction, context) {
+  const asJson = mode === 'json';
+  const sys = asJson
+    ? 'Ты создаешь JSON-промпт для генератора изображений. Ответ строго JSON: {"mainPrompt":"...","negativePrompt":"...","style":"...","constraints":["..."]}'
+    : 'Ты создаешь качественный текстовый промпт для генерации изображений.';
+
   return [
     { role: 'system', content: sys },
-    { role: 'user', content: `${ctx}\n\nИнструкция пользователя: ${userInstruction || 'Сформируй базовый промпт без дополнительных требований.'}` }
+    {
+      role: 'user',
+      content: [
+        `Режим продукта: ${context.modeName || 'Не указан'}`,
+        `Контекст: ${JSON.stringify(context || {})}`,
+        `Инструкция: ${userInstruction || 'Сделай универсальный аккуратный промпт.'}`
+      ].join('\n')
+    }
   ];
 }
 
-async function generateWithOpenAI(cfg, payload) {
-  const url = safeJoin(cfg.baseUrl, '/chat/completions');
-  const res = await axios.post(url, {
+async function generateOpenAiLike(cfg, payload) {
+  const url = joinUrl(cfg.baseUrl, cfg.endpointPath || '/chat/completions');
+  const response = await axios.post(url, {
     model: cfg.model,
-    messages: buildPromptMessages(payload.mode, payload.userInstruction, payload.context),
+    messages: promptMessages(payload.mode, payload.userInstruction, payload.context),
     temperature: 0.7
   }, {
-    headers: { Authorization: `Bearer ${cfg.apiKey}` },
-    timeout: 30000
+    timeout: 30000,
+    headers: { Authorization: `Bearer ${cfg.apiKey}` }
   });
-  return res.data?.choices?.[0]?.message?.content || '';
-}
 
-async function generateWithXAI(cfg, payload) {
-  const url = safeJoin(cfg.baseUrl, '/chat/completions');
-  const res = await axios.post(url, {
-    model: cfg.model,
-    messages: buildPromptMessages(payload.mode, payload.userInstruction, payload.context),
-    temperature: 0.7
-  }, {
-    headers: { Authorization: `Bearer ${cfg.apiKey}` },
-    timeout: 30000
-  });
-  return res.data?.choices?.[0]?.message?.content || '';
-}
-
-async function generateWithAnthropic(cfg, payload) {
-  const url = safeJoin(cfg.baseUrl, '/messages');
-  const user = buildPromptMessages(payload.mode, payload.userInstruction, payload.context)[1].content;
-  const res = await axios.post(url, {
-    model: cfg.model,
-    max_tokens: 1024,
-    messages: [{ role: 'user', content: user }]
-  }, {
-    headers: {
-      'x-api-key': cfg.apiKey,
-      'anthropic-version': '2023-06-01'
-    },
-    timeout: 30000
-  });
-  return res.data?.content?.[0]?.text || '';
-}
-
-async function generateWithGoogle(cfg, payload) {
-  const url = safeJoin(cfg.baseUrl, `/models/${cfg.model}:generateContent?key=${encodeURIComponent(cfg.apiKey)}`);
-  const user = buildPromptMessages(payload.mode, payload.userInstruction, payload.context)[1].content;
-  const res = await axios.post(url, {
-    contents: [{ parts: [{ text: user }] }]
-  }, { timeout: 30000 });
-  return res.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  return response.data?.choices?.[0]?.message?.content || '';
 }
 
 async function generatePrompt(settings, input) {
   const provider = input.provider;
   const cfg = settings.promptProviders[provider];
-  if (!cfg || !cfg.apiKey) {
-    throw new Error('Ключ провайдера промптов не задан.');
-  }
+  if (!cfg) throw new Error('Провайдер промптов не найден.');
+  if (!cfg.apiKey) throw new Error(`Для ${provider} не задан API ключ.`);
 
-  let raw = '';
-  if (provider === 'openai') raw = await generateWithOpenAI(cfg, input);
-  else if (provider === 'xai') raw = await generateWithXAI(cfg, input);
-  else if (provider === 'anthropic') raw = await generateWithAnthropic(cfg, input);
-  else if (provider === 'google') raw = await generateWithGoogle(cfg, input);
-  else throw new Error('Неизвестный провайдер промптов.');
+  let raw;
+  if (provider === 'openai' || provider === 'xai') {
+    raw = await generateOpenAiLike(cfg, input);
+  } else {
+    throw new Error('Неподдерживаемый провайдер промптов.');
+  }
 
   const result = { promptText: raw, raw };
   if (input.mode === 'json') {
@@ -91,6 +60,7 @@ async function generatePrompt(settings, input) {
       result.promptJson = null;
     }
   }
+
   return result;
 }
 
@@ -98,34 +68,74 @@ async function testPromptProvider(settings, provider) {
   await generatePrompt(settings, {
     provider,
     mode: 'classic',
-    userInstruction: 'Тестовое подключение. Ответь одной короткой фразой.',
-    context: { modeName: 'Тест' }
+    userInstruction: 'Проверка соединения. Ответь одной фразой.',
+    context: { modeName: 'Тест провайдера' }
   });
+
   return { ok: true, message: `Провайдер ${provider} доступен.` };
 }
 
 async function callNanoBanana(settings, endpointPath, body) {
   const cfg = settings.nanoBanana;
-  if (!cfg.apiKey) {
-    throw new Error('Ключ NanoBanana не задан.');
-  }
-  const url = safeJoin(cfg.baseUrl, endpointPath);
-  const res = await axios.post(url, { ...body, model: cfg.model }, {
-    headers: { Authorization: `Bearer ${cfg.apiKey}` },
-    timeout: 60000
+  const url = joinUrl(cfg.baseUrl, endpointPath);
+  const response = await axios.post(url, { ...body, model: cfg.model }, {
+    timeout: 60000,
+    headers: { Authorization: `Bearer ${cfg.apiKey}` }
   });
-  return res.data;
+  return response.data;
 }
 
-async function testNanoBanana(settings) {
-  const cfg = settings.nanoBanana;
-  if (!cfg.apiKey) throw new Error('Ключ NanoBanana не задан.');
-  return { ok: true, message: 'Параметры NanoBanana сохранены.' };
+async function generateDemoSet({ modeName, prompt, count }) {
+  const list = [];
+  for (let i = 0; i < count; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    const image = await createDemoImage({
+      modeName,
+      prompt,
+      variantIndex: i + 1,
+      totalVariants: count
+    });
+    list.push(image);
+  }
+  return {
+    images: list,
+    meta: {
+      provider: 'demo',
+      model: 'demo-local-v1',
+      createdAt: new Date().toLocaleString('ru-RU')
+    }
+  };
+}
+
+async function generateImages(settings, modeName, endpointPath, body, count = 1) {
+  const runtime = resolveImageRuntime(settings);
+  if (runtime.mode === 'demo') {
+    return generateDemoSet({ modeName, prompt: body.prompt, count });
+  }
+
+  const response = await callNanoBanana(settings, endpointPath, body);
+  return {
+    ...response,
+    meta: {
+      provider: 'nanobanana',
+      model: settings.nanoBanana.model,
+      createdAt: new Date().toLocaleString('ru-RU')
+    }
+  };
+}
+
+async function testImageProvider(settings) {
+  const runtime = resolveImageRuntime(settings);
+  if (runtime.mode === 'demo') {
+    return { ok: true, message: 'Работает DEMO image provider (без ключа NanoBanana).' };
+  }
+  if (!settings.nanoBanana.apiKey) throw new Error('Ключ NanoBanana не задан.');
+  return { ok: true, message: 'NanoBanana включен и готов к запросам.' };
 }
 
 module.exports = {
   generatePrompt,
   testPromptProvider,
-  callNanoBanana,
-  testNanoBanana
+  generateImages,
+  testImageProvider
 };

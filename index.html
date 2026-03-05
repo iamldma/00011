@@ -4,26 +4,48 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DRILL44 AI</title>
-  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <div class="noise"></div>
-  <div class="app-shell">
+  <div class="bg-noise" aria-hidden="true"></div>
+  <div class="app-layout">
     <aside class="sidebar glass">
-      <div class="brand">
-        <img src="/assets/favicon.svg" alt="DRILL44 AI favicon" />
-        <span>DRILL44 AI</span>
+      <div class="brand-row">
+        <img src="/assets/favicon.svg" alt="DRILL44 AI favicon" class="brand-icon" />
+        <div>
+          <p class="brand-title">DRILL44 AI</p>
+          <p class="brand-subtitle">Premium Prompt & Image Studio</p>
+        </div>
       </div>
-      <button class="nav-btn active" data-view="scene">Редактор сцены</button>
-      <button class="nav-btn" data-view="faceswap">Face Swap (NanoBanana)</button>
-      <button class="nav-btn" data-view="carousel">Карусель вариаций</button>
+
+      <nav class="mode-nav" aria-label="Режимы">
+        <button class="mode-btn active" data-view="scene">
+          <img src="/assets/icon-scene.svg" alt="" />
+          <span>Редактор сцены</span>
+        </button>
+        <button class="mode-btn" data-view="faceswap">
+          <img src="/assets/icon-face.svg" alt="" />
+          <span>Face Swap (NanoBanana)</span>
+        </button>
+        <button class="mode-btn" data-view="carousel">
+          <img src="/assets/icon-carousel.svg" alt="" />
+          <span>Карусель вариаций</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <span class="pill" id="providerBadge">Image: DEMO</span>
+      </div>
     </aside>
 
     <main class="workspace glass">
-      <header>
-        <h1 id="viewTitle">Редактор сцены</h1>
-        <div class="status" id="jobStatus">Готово</div>
+      <header class="workspace-header">
+        <div>
+          <h1 id="viewTitle">Редактор сцены</h1>
+          <p id="viewHint">Соберите исходные референсы и запустите генерацию.</p>
+        </div>
+        <div class="job-chip" id="jobStatus">Ожидание</div>
       </header>
 
       <section id="sceneView" class="view active"></section>
@@ -31,31 +53,30 @@
       <section id="carouselView" class="view"></section>
     </main>
 
-    <aside class="settings glass collapsed" id="settingsPanel">
-      <button class="toggle-settings" id="toggleSettings">⚙️ Настройки</button>
-      <div class="settings-content">
-        <h2>Провайдеры и параметры</h2>
-        <label>Формат промптов
+    <aside class="settings-drawer glass collapsed" id="settingsDrawer">
+      <button id="toggleDrawer" class="drawer-toggle">⚙️ Настройки</button>
+      <div class="drawer-body">
+        <h2>Провайдеры</h2>
+
+        <label>Формат промпта
           <select id="promptFormat">
             <option value="classic">Текстовый (Classic)</option>
             <option value="json">JSON</option>
           </select>
         </label>
 
-        <label>LLM провайдер
+        <label>Prompt provider
           <select id="selectedPromptProvider">
             <option value="openai">OpenAI (ChatGPT)</option>
             <option value="xai">xAI (Grok)</option>
-            <option value="anthropic">Anthropic (Claude)</option>
-            <option value="google">Google (Gemini)</option>
           </select>
         </label>
 
-        <div id="providerSettings"></div>
+        <div id="promptProviderCards"></div>
 
         <h3>NanoBanana</h3>
         <label>Base URL <input id="nanoBaseUrl" type="text" /></label>
-        <label>API Key <input id="nanoApiKey" type="password" autocomplete="off" /></label>
+        <label>API ключ <input id="nanoApiKey" type="password" autocomplete="off" /></label>
         <label>Модель
           <select id="nanoModel">
             <option value="pro">NanoBanana Pro</option>
@@ -66,18 +87,19 @@
         <label>faceSwapPath <input id="nanoFaceSwapPath" type="text" /></label>
         <label>carouselPath <input id="nanoCarouselPath" type="text" /></label>
 
-        <label class="check-row"><input type="checkbox" id="showKeys" /> Показать ключи</label>
-        <div class="btn-row">
+        <label class="inline-check"><input type="checkbox" id="showKeys" /> Показать ключи</label>
+
+        <div class="btn-grid">
           <button id="saveSettings">Сохранить</button>
-          <button id="testPromptProvider">Проверить LLM</button>
-          <button id="testNano">Проверить NanoBanana</button>
-          <button id="resetKeys" class="danger">Сбросить ключи</button>
+          <button id="testPrompt">Проверить</button>
+          <button id="testImage">Проверить Image</button>
+          <button id="resetKeys" class="danger">Сбросить</button>
         </div>
       </div>
     </aside>
   </div>
 
-  <div id="toastRoot"></div>
+  <div id="toastRoot" aria-live="polite"></div>
   <script src="/app.js"></script>
 </body>
 </html>
